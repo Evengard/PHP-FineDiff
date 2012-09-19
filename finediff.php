@@ -365,7 +365,7 @@ class FineDiff {
 		FineDiff::paragraphDelimiters,
 		FineDiff::sentenceDelimiters
 	);
-	const wordDelimiters = " \t.\n\r";
+	const wordDelimiters = " \t.,;\n\r";
 	public static $wordGranularity = array(
 		FineDiff::paragraphDelimiters,
 		FineDiff::sentenceDelimiters,
@@ -702,6 +702,15 @@ class FineDiff {
 			echo mb_substr($from, $from_offset, $from_len);
 		}
 	}
+	
+	private static function countEOL($string) { 
+		$count = 0;
+		while (mb_strpos($string, "\n") !== FALSE) {
+			$count++;
+			$string = mb_substr($string, mb_strpos($string, "\n") + 1);
+		}
+		return $count;
+	}
 
 	private static function renderDiffToHTMLFromOpcode($opcode, $from, $from_offset, $from_len) {
 		if ( $opcode === 'c' ) {
@@ -709,6 +718,15 @@ class FineDiff {
 		}
 		else if ( $opcode === 'd' ) {
 			$deletion = mb_substr($from, $from_offset, $from_len);
+			/**
+			 * If $deletion contain just one "\n" on the end of line, remove this "\n"
+			 * Now deleted and inserted text are in one row.
+			 * IMHO this is better readable for human beings.
+			 * Thanks lichtner (https://github.com/lichtner) for this chunk of code
+			 */
+			if (self::countEOL($deletion) === 1 && mb_substr($deletion, -1)) {
+				$deletion = str_replace("\n", '', $deletion);
+			}
 			if ( strcspn($deletion, " \n\r") === 0 ) { // no mb_ here is okay
 				$deletion = str_replace(array("\n","\r"), array('\n','\r'), $deletion);
 			}
